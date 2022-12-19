@@ -1,0 +1,3 @@
+./test
+*.lnk
+*/*/node_modules
