@@ -1,3 +1,5 @@
 ./test
 *.lnk
 */*/node_modules
+*/node_modules
+*.bat
