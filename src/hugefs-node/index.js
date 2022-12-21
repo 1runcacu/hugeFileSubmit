@@ -8,8 +8,9 @@ const {proxy} = require('./lib/net');
 const {errorSysInit} = require('./lib/error');
 const fs = require('fs');
 
-const port = 8401;
-const BASE = `http://127.0.0.1:${port}`;
+const port = (process.env.NODE_ENV=="test")?8401:8400;
+const HOST = (process.env.NODE_ENV=="production")?`http://101.34.27.96`:`http://localhost`;
+const BASE = `${HOST}:${port}`;
 const URL = `${BASE}/file`;
 const STATIC = `${BASE}/static`;
 // const port = 8401;
@@ -64,7 +65,7 @@ app.post(/file/,async function(req,res){
                 if(error){
                     console.log(error);
                 }else{
-                    console.log(`${seq}-${hash}:${filename} merge success!`);
+                    // console.log(`${seq}-${hash}:${filename} merge success!`);
                 }
             });
             return;

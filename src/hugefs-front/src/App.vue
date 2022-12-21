@@ -31,9 +31,13 @@ const frame = ref({
   src:""
 });
 
-const BASE = `http://127.0.0.1:8401`;
+console.log(process.env.NODE_ENV);
+
+const BASE = (process.env.NODE_ENV==="development")?`http://127.0.0.1:8401`:(process.env.NODE_ENV==="test")?`http://127.0.0.1:8400`:`http://101.34.27.96:8400`;
 const URL = `${BASE}/file`;
 const STATIC = `${BASE}/static/`;
+
+console.log(BASE);
 
 const hashMaker = ()=>Date.now().toString(36)+Math.random().toString(36).substr(2,9);
 
@@ -72,7 +76,7 @@ class Reader{
 }
 
 class FileUpper{
-  constructor(file,length=10000,time=50){
+  constructor(file,length=40000,time=50){
     this.file = file;
     this.length = length;
     this.time = time;
@@ -100,6 +104,37 @@ class FileUpper{
         }
       });
       timer.start();
+    });
+  }
+  submit(post,limit = 500){
+    this.status = "fulfilled";
+    return new Promise((resolve,reject)=>{
+      const fragment = FileUpper.enCode(this.file,this.length);
+      const sum = fragment.length;
+      let count = 0;
+      let runtime = 0;
+      const send = ()=>{
+        if(runtime>=limit)return;
+        if(count>=sum){
+          resolve();
+          return;
+        }
+        post(fragment[count],count,fragment.length,this.status).then(v=>{
+          runtime--;
+          send();
+        }).catch(err=>{
+          runtime--;
+          send();
+        });
+        count++;
+        runtime++;
+        if(count<sum){
+          send();
+        }else{
+          resolve();
+        }
+      }
+      send();
     });
   }
   timer(runable){
@@ -149,19 +184,56 @@ const readFile = (e)=>{
       // console.log(v.data);
       pgsValue.value = 0.0;
       let seq = -1;
-      new FileUpper(reader.result).run((v,i,s)=>{
-        seq = i;
-        pgsValue.value = i/s;
-        proxy(URL,{
-          type:"picture",
-          filename:file,
-          frame:v,
-          hash,
-          seq,
-          process:"running"
+
+
+      // new FileUpper(reader.result).run((v,i,s)=>{
+      //   seq = i;
+      //   pgsValue.value = i/s;
+      //   proxy(URL,{
+      //     type:"picture",
+      //     filename:file,
+      //     frame:v,
+      //     hash,
+      //     seq,
+      //     process:"running"
+      //   })
+      //   // .then(v=>console.log(v.data));
+      // }).then(v=>{
+      //   proxy(URL,{
+      //     type:"picture",
+      //     filename:file,
+      //     frame:null,
+      //     hash,
+      //     seq:seq+1,
+      //     process:"finish"
+      //   })
+      //   .then(v=>{
+      //     pgsValue.value = 1.0;
+      //     detail.value = v.data;
+      //     console.log(v.data)
+      //     frame.value.src = v.data.url;
+      //   });
+      // });
+
+      new FileUpper(reader.result).submit((v,i,s)=>{
+        return new Promise(resolve=>{
+          seq = i;
+          pgsValue.value = i/s;
+          proxy(URL,{
+            type:"picture",
+            filename:file,
+            frame:v,
+            hash,
+            seq,
+            process:"running"
+          }).then(v=>{
+            resolve();
+          }).catch(err=>{
+            resolve();
+          })
         })
-        // .then(v=>console.log(v.data));
-      }).then(v=>{
+      })
+      .then(v=>{
         proxy(URL,{
           type:"picture",
           filename:file,
@@ -177,6 +249,7 @@ const readFile = (e)=>{
           frame.value.src = v.data.url;
         });
       });
+
     });
     
     // const c = encode(reader.result);

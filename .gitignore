@@ -1,5 +1,7 @@
 ./test
 *.lnk
 */*/node_modules
+src/hugefs-node
+*/static/
 */node_modules
 *.bat
