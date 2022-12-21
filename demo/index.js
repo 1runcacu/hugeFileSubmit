@@ -19,6 +19,8 @@ errorSysInit(process);
 
 const app = express();
 
+console.log(process.env.NODE_ENV);
+
 app.all('*', function (req, res, next){
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'POST,GET');
