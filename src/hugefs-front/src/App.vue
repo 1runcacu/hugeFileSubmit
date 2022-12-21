@@ -57,7 +57,7 @@ class Reader{
 }
 
 class FileUpper{
-  constructor(file,length=40000,time=200){
+  constructor(file,length=40000,time=100){
     this.file = file;
     this.length = length;
     this.time = time;
@@ -102,6 +102,7 @@ class FileUpper{
             setTimeout(() => {
               start();
             },this.time);
+            // start();
           }
         }
       });
