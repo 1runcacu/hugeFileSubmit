@@ -6,7 +6,9 @@
       <div>{{detail}}</div>
       <div>
         <progress :value="pgsValue" max="1"></progress><br/>
-        <span>{{ (pgsValue*100).toFixed(2) }}%</span>
+        <span>{{ (pgsValue*100).toFixed(2) }}%</span><br/>
+        <span>速率：{{ speed.toFixed(2) }}Mb/s</span><br/>
+        <span>时间：{{ runtime.toFixed(2) }}s</span><br/>
       </div>
     </div>
     <iframe
@@ -30,6 +32,8 @@ const frame = ref({
   title:"",
   src:""
 });
+const runtime = ref(0);
+const speed = ref(0);
 
 console.log(process.env.NODE_ENV);
 
@@ -75,6 +79,8 @@ class Reader{
   }
 }
 
+const defLen = 80000;
+
 class FileUpper{
   constructor(file,length=40000,time=50){
     this.file = file;
@@ -82,14 +88,25 @@ class FileUpper{
     this.time = time;
     this.status = "pending";
   }
-  static enCode = (body,len=500)=>{
+  static enCode = (body,len=defLen)=>{
     const uint8 = new Uint8Array(body);
     const total = Math.ceil(uint8.length/len);
     const fragment = [];
     for(let i=0,j=0;i<total;i++,j+=len){
-      fragment.push(String.fromCharCode(...uint8.slice(j,j+len)));
+      fragment.push( tring.fromCharCode(...uint8.slice(j,j+len)) );
     }
     return fragment;
+  }
+  static enCode2 = (body,len=defLen)=>{
+    const uint8 = new Uint8Array(body);
+    const total = Math.ceil(uint8.length/len);
+    console.log(uint8.length,total);
+    return {
+      uint8,total
+    }
+  }
+  static encode = (uint8,j=0,len=defLen)=>{
+    return String.fromCharCode(...uint8.slice(j,j+len))
   }
   run(runable){
     this.status = "fulfilled";
@@ -106,30 +123,32 @@ class FileUpper{
       timer.start();
     });
   }
-  submit(post,limit = 500){
+  submit(post,limit = 100){
     this.status = "fulfilled";
     return new Promise((resolve,reject)=>{
-      const fragment = FileUpper.enCode(this.file,this.length);
-      const sum = fragment.length;
+      const {uint8,total} = FileUpper.enCode2(this.file,this.length);
+      const sum = total;
       let count = 0;
       let runtime = 0;
+      let j = 0;
       const send = ()=>{
         if(runtime>=limit)return;
         if(count>=sum){
           resolve();
           return;
         }
-        post(fragment[count],count,fragment.length,this.status).then(v=>{
+        const fragment = FileUpper.encode(uint8,j);
+        post(fragment,count,sum,this.status).then(v=>{
           runtime--;
           send();
         }).catch(err=>{
           runtime--;
           send();
         });
-        count++;
+        count++;j+=defLen;
         runtime++;
         if(count<sum){
-          send();
+          setImmediate(send);
         }else{
           resolve();
         }
@@ -172,6 +191,7 @@ const readFile = (e)=>{
   const reader = new FileReader();
   const hash = hashMaker();
   frame.value.title = `${file}-${hash}`;
+  const start = Date.now();
   reader.onload=function(){
     proxy(URL,{
       type:"picture",
@@ -181,8 +201,10 @@ const readFile = (e)=>{
       seq:-1,
       process:"start"
     }).then(v=>{
+      
       // console.log(v.data);
       pgsValue.value = 0.0;
+      speed.value = 0.0;
       let seq = -1;
 
 
@@ -214,11 +236,20 @@ const readFile = (e)=>{
       //     frame.value.src = v.data.url;
       //   });
       // });
-
+      let last = Date.now();
+      let lastCount = 0;
       new FileUpper(reader.result).submit((v,i,s)=>{
         return new Promise(resolve=>{
           seq = i;
           pgsValue.value = i/s;
+          let nowCount = i;
+          runtime.value = (Date.now()-start)/1000;
+          let dt = Date.now() - last;
+          if(dt>500){
+            speed.value = (nowCount-lastCount)*defLen/1000/dt;
+            last = Date.now();
+            lastCount = nowCount;
+          }
           proxy(URL,{
             type:"picture",
             filename:file,
@@ -260,8 +291,9 @@ const readFile = (e)=>{
     // const d = unEncode(c);
     // console.log(d);
     // console.log(d.byteLength);
+    console.log(reader.result.byteLength);
     respond.value = `
-      <b>byteLength:</b>${reader.result.byteLength}<br/>
+      <b>size:</b>${(reader.result.byteLength/1000000).toFixed(2)}MB<br/>
       <b>fileName:</b>${file}<br/>
       <b>type:</b>${type}<br/>
     `;

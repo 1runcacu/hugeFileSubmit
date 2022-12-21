@@ -55,6 +55,8 @@ function stringToArrayBuffer(str){
     return buffer;
 }
 
+// const map = {};
+
 app.post(/file/,async function(req,res){
     const {type,filename,frame,hash,seq,process} = req.body;
     switch(process){
@@ -65,7 +67,7 @@ app.post(/file/,async function(req,res){
                 if(error){
                     console.log(error);
                 }else{
-                    // console.log(`${seq}-${hash}:${filename} merge success!`);
+                    console.log(`${seq}-${hash}:${filename} merge success!`);
                 }
             });
             return;
