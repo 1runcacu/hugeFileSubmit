@@ -50,7 +50,7 @@ class Reader{
     readFile(e.target.files[0]);
   }
   render(){
-    this.el = createElementByStr(`<input type="file" accept=".*">`);
+    this.el = createElementByStr(`<input type="file"/>`);
     this.el.addEventListener('change',this.changeHandle,true);
     return this.el;
   }
