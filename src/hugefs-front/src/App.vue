@@ -1,10 +1,19 @@
 <template>
-  <div class="msg" v-html="respond"></div>
-  <button @click="upload">UPLOAD</button>
-  <div>{{detail}}</div>
-  <div>
-    <progress :value="pgsValue" max="1"></progress><br/>
-    <span>{{ (pgsValue*100).toFixed(2) }}%</span>
+  <div class="box">
+    <div class="left">
+      <div class="msg" v-html="respond"></div>
+      <button @click="upload">UPLOAD</button>
+      <div>{{detail}}</div>
+      <div>
+        <progress :value="pgsValue" max="1"></progress><br/>
+        <span>{{ (pgsValue*100).toFixed(2) }}%</span>
+      </div>
+    </div>
+    <iframe
+      class="right"
+      :title="frame.title"
+      :src="frame.src"
+    ></iframe>
   </div>
   
 </template>
@@ -16,15 +25,21 @@ import { ref, render } from 'vue';
 
 const respond = ref("");
 const detail = ref("");
-const uploadFile = ref(null);
-
 const pgsValue = ref(0.0);
+const frame = ref({
+  title:"",
+  src:""
+});
 
-const URL = `http://127.0.0.1:8401/file`;
+const BASE = `http://127.0.0.1:8401`;
+const URL = `${BASE}/file`;
+const STATIC = `${BASE}/static/`;
+
+const hashMaker = ()=>Date.now().toString(36)+Math.random().toString(36).substr(2,9);
 
 const serve = axios.create({
   baseURL: "/serve",
-  timeout: 5000
+  timeout: 30000
 });
 
 function proxy(url,params={},config={},method="post"){
@@ -57,7 +72,7 @@ class Reader{
 }
 
 class FileUpper{
-  constructor(file,length=40000,time=100){
+  constructor(file,length=10000,time=50){
     this.file = file;
     this.length = length;
     this.time = time;
@@ -120,11 +135,14 @@ const readFile = (e)=>{
   const file = e.name;
   const type = getExtension(file);
   const reader = new FileReader();
+  const hash = hashMaker();
+  frame.value.title = `${file}-${hash}`;
   reader.onload=function(){
     proxy(URL,{
       type:"picture",
       filename:file,
       frame:null,
+      hash,
       seq:-1,
       process:"start"
     }).then(v=>{
@@ -138,6 +156,7 @@ const readFile = (e)=>{
           type:"picture",
           filename:file,
           frame:v,
+          hash,
           seq,
           process:"running"
         })
@@ -147,6 +166,7 @@ const readFile = (e)=>{
           type:"picture",
           filename:file,
           frame:null,
+          hash,
           seq:seq+1,
           process:"finish"
         })
@@ -154,6 +174,7 @@ const readFile = (e)=>{
           pgsValue.value = 1.0;
           detail.value = v.data;
           console.log(v.data)
+          frame.value.src = v.data.url;
         });
       });
     });
@@ -242,4 +263,22 @@ button:active{
   background: #40a0ff;
 }
 
+.box{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.left{
+  height: 100%;
+  width: 200px;
+  overflow: hidden;
+}
+
+.right{
+  height: 100%;
+  flex: 1;
+}
 </style>
