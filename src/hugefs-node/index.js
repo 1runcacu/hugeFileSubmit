@@ -70,6 +70,7 @@ app.post(/file/,async function(req,res){
                     console.log(`${seq}-${hash}:${filename} merge success!`);
                 }
             });
+            // console.log(`${seq}-${hash}:${filename} merge success!`);
             return;
         case "start":
             fs.writeFile(`${addr}/${filename}`,new DataView(new ArrayBuffer(0)),{ flag: 'w' }, function (error){
@@ -79,6 +80,7 @@ app.post(/file/,async function(req,res){
                     console.log(`${filename} create success!`);
                 }
             });
+            // console.log(`${filename} create success!`);
             res.status(200).json({ack:seq+1,process});
             return;
         case "finish":

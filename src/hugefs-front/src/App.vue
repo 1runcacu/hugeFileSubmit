@@ -7,8 +7,10 @@
       <div>
         <progress :value="pgsValue" max="1"></progress><br/>
         <span>{{ (pgsValue*100).toFixed(2) }}%</span><br/>
-        <span>速率：{{ speed.toFixed(2) }}Mb/s</span><br/>
-        <span>时间：{{ runtime.toFixed(2) }}s</span><br/>
+        <span>瞬时速率：{{ speed.toFixed(2) }} MB/s</span><br/>
+        <span>平均速率：{{ speedbar.toFixed(2) }} MB/s</span><br/>
+        <span>时间：{{ runtime.toFixed(2) }} s</span><br/>
+        <span>覆盖率：{{cover}}/{{ mlimit }} </span><br/>
       </div>
     </div>
     <iframe
@@ -34,12 +36,16 @@ const frame = ref({
 });
 const runtime = ref(0);
 const speed = ref(0);
+const speedbar = ref(0);
 
 console.log(process.env.NODE_ENV);
 
 const BASE = (process.env.NODE_ENV==="development")?`http://127.0.0.1:8401`:(process.env.NODE_ENV==="test")?`http://127.0.0.1:8400`:`http://101.34.27.96:8400`;
 const URL = `${BASE}/file`;
 const STATIC = `${BASE}/static/`;
+
+const cover = ref("");
+const mlimit = ref("");
 
 console.log(BASE);
 
@@ -80,6 +86,7 @@ class Reader{
 }
 
 const defLen = 80000;
+const LIMIT = 100;
 
 class FileUpper{
   constructor(file,length=40000,time=50){
@@ -123,7 +130,8 @@ class FileUpper{
       timer.start();
     });
   }
-  submit(post,limit = 100){
+  submit(post){
+    let limit = 1;
     this.status = "fulfilled";
     return new Promise((resolve,reject)=>{
       const {uint8,total} = FileUpper.enCode2(this.file,this.length);
@@ -140,15 +148,24 @@ class FileUpper{
         const fragment = FileUpper.encode(uint8,j);
         post(fragment,count,sum,this.status).then(v=>{
           runtime--;
+          cover.value = runtime;
+          if(limit<LIMIT)limit++;
+          mlimit.value = limit;
           send();
         }).catch(err=>{
           runtime--;
+          cover.value = runtime;
+          if(limit<LIMIT)limit++;
+          mlimit.value = limit;
           send();
         });
         count++;j+=defLen;
         runtime++;
+        // cover.value = runtime;
         if(count<sum){
-          setImmediate(send);
+          // setImmediate(send);
+          cover.value = runtime;
+          send();
         }else{
           resolve();
         }
@@ -238,15 +255,19 @@ const readFile = (e)=>{
       // });
       let last = Date.now();
       let lastCount = 0;
+      const byteLength = reader.result.byteLength;
       new FileUpper(reader.result).submit((v,i,s)=>{
         return new Promise(resolve=>{
           seq = i;
           pgsValue.value = i/s;
           let nowCount = i;
           runtime.value = (Date.now()-start)/1000;
-          let dt = Date.now() - last;
-          if(dt>500){
-            speed.value = (nowCount-lastCount)*defLen/1000/dt;
+          let dt = (Date.now() - last)/1000;
+          if(dt>0.2){
+            // console.log(nowCount-lastCount);
+            speed.value = (nowCount-lastCount)*defLen/1024/1024/dt;
+            speedbar.value = pgsValue.value*byteLength/1024/1024/runtime.value;
+            // console.log(speed.value);
             last = Date.now();
             lastCount = nowCount;
           }
@@ -293,7 +314,7 @@ const readFile = (e)=>{
     // console.log(d.byteLength);
     console.log(reader.result.byteLength);
     respond.value = `
-      <b>size:</b>${(reader.result.byteLength/1000000).toFixed(2)}MB<br/>
+      <b>size:</b>${(reader.result.byteLength/1024/1024).toFixed(2)}MB<br/>
       <b>fileName:</b>${file}<br/>
       <b>type:</b>${type}<br/>
     `;
