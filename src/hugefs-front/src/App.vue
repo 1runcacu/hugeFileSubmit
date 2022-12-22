@@ -263,7 +263,7 @@ const readFile = (e)=>{
           let nowCount = i;
           runtime.value = (Date.now()-start)/1000;
           let dt = (Date.now() - last)/1000;
-          if(dt>0.2){
+          if(dt>1||i+1==s){
             // console.log(nowCount-lastCount);
             speed.value = (nowCount-lastCount)*defLen/1024/1024/dt;
             speedbar.value = pgsValue.value*byteLength/1024/1024/runtime.value;
@@ -271,18 +271,23 @@ const readFile = (e)=>{
             last = Date.now();
             lastCount = nowCount;
           }
-          proxy(URL,{
-            type:"picture",
-            filename:file,
-            frame:v,
-            hash,
-            seq,
-            process:"running"
-          }).then(v=>{
-            resolve();
-          }).catch(err=>{
-            resolve();
-          })
+          if(v.length==0){
+            console.log(i);
+            resolve();0
+          }else{
+            proxy(URL,{
+              type:"picture",
+              filename:file,
+              frame:v,
+              hash,
+              seq,
+              process:"running"
+            }).then(v=>{
+              resolve();
+            }).catch(err=>{
+              resolve();
+            })
+          }
         })
       })
       .then(v=>{

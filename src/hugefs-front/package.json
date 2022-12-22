@@ -5,6 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "test": "set NODE_ENV=test&&vue-cli-service serve",
+    "buitest": "set NODE_ENV=test&&vue-cli-service build",
     "mactest": "export NODE_ENV=test&&vue-cli-service serve",
     "dev": "set NODE_ENV=development&&vue-cli-service build",
     "macdev": "export NODE_ENV=development&&vue-cli-service build",

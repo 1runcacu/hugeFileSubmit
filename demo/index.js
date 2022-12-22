@@ -7,19 +7,26 @@ const history = require('connect-history-api-fallback');
 const {proxy} = require('./lib/net');
 const {errorSysInit} = require('./lib/error');
 const fs = require('fs');
+// const Thread = require('./lib/thread');
+const { Worker } = require("worker_threads");
 
-const port = 8400;
-const BASE = `http://127.0.0.1:${port}`;
+const port = (process.env.NODE_ENV=="test")?8401:8400;
+const HOST = (process.env.NODE_ENV=="production")?`http://101.34.27.96`:`http://localhost`;
+const BASE = `${HOST}:${port}`;
 const URL = `${BASE}/file`;
 const STATIC = `${BASE}/static`;
+
 // const port = 8401;
 const addr = path.normalize(__dirname + '/static');
+
+const circle = new Worker(path.normalize(__dirname + '/lib/circle.js'));
+circle.on("message",function(data){
+    console.log(data);
+});
 
 errorSysInit(process);
 
 const app = express();
-
-console.log(process.env.NODE_ENV);
 
 app.all('*', function (req, res, next){
     res.header('Access-Control-Allow-Origin', '*');
@@ -56,31 +63,26 @@ function stringToArrayBuffer(str){
     return buffer;
 }
 
+const map = {};
+
 app.post(/file/,async function(req,res){
     const {type,filename,frame,hash,seq,process} = req.body;
     switch(process){
         default:
         case "running":
-            res.status(200).json({ack:seq+1,process});
-            fs.writeFile(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' }, function (error){
-                if(error){
-                    console.log(error);
-                }else{
-                    console.log(`${seq}-${hash}:${filename} merge success!`);
-                }
+            circle.postMessage({
+                filename,hash,frame,seq,flag:'a'
             });
+            res.status(200).json({ack:seq+1,process});
             return;
         case "start":
-            fs.writeFile(`${addr}/${filename}`,new DataView(new ArrayBuffer(0)),{ flag: 'w' }, function (error){
-                if(error){
-                    console.log(error);
-                }else{
-                    console.log(`${filename} create success!`);
-                }
+            circle.postMessage({
+                filename,hash,frame,seq,flag:'w'
             });
             res.status(200).json({ack:seq+1,process});
             return;
         case "finish":
+            // delete map[hash];
             res.status(200).json({ack:seq+1,process,url:`${STATIC}/${filename}`});
             return;
     }
