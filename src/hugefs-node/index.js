@@ -19,10 +19,10 @@ const STATIC = `${BASE}/static`;
 // const port = 8401;
 const addr = path.normalize(__dirname + '/static');
 
-const circle = new Worker(path.normalize(__dirname + '/lib/circle.js'));
-circle.on("message",function(data){
-    console.log(data);
-});
+// const circle = new Worker(path.normalize(__dirname + '/lib/circle.js'));
+// circle.on("message",function(data){
+//     console.log(data);
+// });
 
 errorSysInit(process);
 
@@ -63,16 +63,21 @@ function stringToArrayBuffer(str){
     return buffer;
 }
 
-const map = {};
+// const map = {};
+
+const fileBuffer = [];
 
 app.post(/file/,async function(req,res){
     const {type,filename,frame,hash,seq,process} = req.body;
     switch(process){
         default:
         case "running":
-            circle.postMessage({
+            fileBuffer.push({
                 filename,hash,frame,seq,flag:'a'
             });
+            // circle.postMessage({
+            //     filename,hash,frame,seq,flag:'a'
+            // });
             res.status(200).json({ack:seq+1,process});
             // fs.writeFile(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' }, function (error){
             //     if(error){
@@ -86,9 +91,12 @@ app.post(/file/,async function(req,res){
             // console.log(`${seq}-${hash}:${filename} merge success!`);
             return;
         case "start":
-            circle.postMessage({
+            fileBuffer.push({
                 filename,hash,frame,seq,flag:'w'
             });
+            // circle.postMessage({
+            //     filename,hash,frame,seq,flag:'w'
+            // });
             // fs.writeFile(`${addr}/${filename}`,new DataView(new ArrayBuffer(0)),{ flag: 'w' }, function (error){
             //     if(error){
             //         console.log(error);
@@ -113,3 +121,44 @@ http.createServer(app).listen(port,function () {
     console.log(`应用实例，访问地址为 http://localhost:${port}`);
 });
 
+var handle = null;
+
+function save(){
+    const size = fileBuffer.length;
+    // console.log(workerData.fileBuffer);
+    if(size===0){
+        handle = setTimeout(() => {
+            save();
+        }, 1000);
+        return;
+    }
+    clearTimeout(handle);
+    const {filename,hash,frame,seq,flag} = fileBuffer.shift();
+    if(flag==="w"){
+        // fs.writeFileSync(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' });
+        // console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);save();
+        fs.writeFile(`${addr}/${filename}`,new DataView(new ArrayBuffer(0)),{ flag: 'w' }, function (error){
+            if(error){
+                console.log(error);
+            }else{
+                // console.log(`${filename} create success!`);
+            }
+            console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
+            setTimeout(save);
+        });
+    }else{
+        // fs.writeFileSync(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' });
+        // console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);save();
+        fs.writeFile(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' }, function (error){
+            if(error){
+                console.log(error);
+            }else{
+                // console.log(`${seq}-${hash}:${filename} merge success!`);
+            }
+            console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
+            setTimeout(save);
+        });
+    }
+}
+
+save();

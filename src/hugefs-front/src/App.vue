@@ -106,8 +106,7 @@ class FileUpper{
   }
   static enCode2 = (body,len=defLen)=>{
     const uint8 = new Uint8Array(body);
-    const total = Math.ceil(uint8.length/len);
-    console.log(uint8.length,total);
+    const total = Math.ceil(uint8.length/2/len);
     return {
       uint8,total
     }
@@ -201,7 +200,6 @@ class FileUpper{
   }
 }
 
-
 const readFile = (e)=>{
   const file = e.name;
   const type = getExtension(file);
@@ -272,8 +270,7 @@ const readFile = (e)=>{
             lastCount = nowCount;
           }
           if(v.length==0){
-            console.log(i);
-            resolve();0
+            resolve();
           }else{
             proxy(URL,{
               type:"picture",
@@ -300,10 +297,12 @@ const readFile = (e)=>{
           process:"finish"
         })
         .then(v=>{
-          pgsValue.value = 1.0;
-          detail.value = v.data;
-          console.log(v.data)
-          frame.value.src = v.data.url;
+          setTimeout(() => {
+            pgsValue.value = 1.0;
+            detail.value = v.data;
+            console.log(v.data)
+            frame.value.src = v.data.url;
+          }, 1000);
         });
       });
 

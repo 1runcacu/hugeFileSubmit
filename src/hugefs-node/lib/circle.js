@@ -31,25 +31,31 @@ function save(){
     }
     const {filename,hash,frame,seq,flag} = fileBuffer.shift();
     if(flag==="w"){
-        fs.writeFile(`${addr}/${filename}`,new DataView(new ArrayBuffer(0)),{ flag: 'w' }, function (error){
-            if(error){
-                console.log(error);
-            }else{
-                // console.log(`${filename} create success!`);
-            }
-            console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
-            save();
-        });
+        fs.writeFileSync(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' });
+        console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
+        // fs.writeFile(`${addr}/${filename}`,new DataView(new ArrayBuffer(0)),{ flag: 'w' }, function (error){
+        //     if(error){
+        //         console.log(error);
+        //     }else{
+        //         // console.log(`${filename} create success!`);
+        //     }
+        //     console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
+        //     save();
+        // });
+        save();
     }else{
-        fs.writeFile(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' }, function (error){
-            if(error){
-                console.log(error);
-            }else{
-                // console.log(`${seq}-${hash}:${filename} merge success!`);
-            }
-            console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
-            save();
-        });
+        fs.writeFileSync(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' });
+        console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
+        // fs.writeFile(`${addr}/${filename}`,new DataView(stringToArrayBuffer(frame)),{ flag: 'a' }, function (error){
+        //     if(error){
+        //         console.log(error);
+        //     }else{
+        //         // console.log(`${seq}-${hash}:${filename} merge success!`);
+        //     }
+        //     console.log(`size:${size},success:seq:${seq},file:${filename},hash:${hash}`);
+        //     save();
+        // });
+        save();
     }
 }
 
