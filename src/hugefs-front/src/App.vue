@@ -106,7 +106,8 @@ class FileUpper{
   }
   static enCode2 = (body,len=defLen)=>{
     const uint8 = new Uint8Array(body);
-    const total = Math.ceil(uint8.length/2/len);
+    const total = Math.ceil(uint8.length/len);
+    // console.log(uint8.length,total);
     return {
       uint8,total
     }
@@ -135,6 +136,7 @@ class FileUpper{
     return new Promise((resolve,reject)=>{
       const {uint8,total} = FileUpper.enCode2(this.file,this.length);
       const sum = total;
+      console.log(total);
       let count = 0;
       let runtime = 0;
       let j = 0;
@@ -254,6 +256,7 @@ const readFile = (e)=>{
       let last = Date.now();
       let lastCount = 0;
       const byteLength = reader.result.byteLength;
+      let test = [];
       new FileUpper(reader.result).submit((v,i,s)=>{
         return new Promise(resolve=>{
           seq = i;
@@ -288,6 +291,7 @@ const readFile = (e)=>{
         })
       })
       .then(v=>{
+        console.log(test);
         proxy(URL,{
           type:"picture",
           filename:file,
@@ -405,6 +409,8 @@ button:active{
   height: 100%;
   width: 200px;
   overflow: hidden;
+  word-wrap: break-word;
+  word-break: normal;
 }
 
 .right{
